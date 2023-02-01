@@ -1,49 +1,66 @@
 import random
-import time
-from typing import List, Any
 import requests
 import json
+import asyncio
 from aiogram import Bot, Dispatcher, executor, types
 from datetime import datetime
-import asyncio
+from aiogram.utils.exceptions import BotBlocked
+from aiogram.utils.exceptions import BadRequest
+from typing import Any
 
-api_bot_token = 'your bot token'
+api_bot_token = 'YOUR_TELEGRAM_BOT_TOKEN'
 bot = Bot(token=api_bot_token)
 dp = Dispatcher(bot)
 
-headers = {'PRIVATE-TOKEN': 'your gitlab autorization token'}
+headers = {'PRIVATE-TOKEN': 'YOUR_GITLAB_PRIVATE_TOKEN'}
 
+# Set time to get message to your team chat
 time_to_send_message = {
     '10:00',
-    '12:00',
-    '14:00',
-    '16:00',
+    '13:00',
+    '16:00'
 }
 
+# Set developers names
 developers = {
-    'gitlab developer username': '@user telegram name'
+    'gitlab_nickname': '@telegram_nickname',
 }
 
-# One love =)
-german_motivation = [
-    'Fahr zur Hölle!',
-    'Halt die Fotze!',
-    'Leck mich am Arsch!',
-    'Du gehst mir auf den Sack!',
-    'Ein Scheißdreck werde ich tun!',
-    'Verpiss dich!',
-    'der Mistkerl!',
-    'der Fotzenlecker!',
-    'der Wichser!',
-    'Alter Muschi!',
-    'Ah du Schwein!',
-    'Scheiß drauf!',
-    'Mir ist es scheißegal!'
+# Set bot start messages
+start_messages = [
+    'Как прикажете',
+    'Уже ушла',
+    'Мать мр-в в деле',
+    'Нормально же общались',
+    'Хотела денег попросить, но приказали идти работать',
+    'Слушаюсь',
+    'Как раз получила чёрный пояс по карате',
+    'Повинуюсь',
+    'Wie sie befohlen haben',
+    'Schon weg',
+    'Mr-ins Mutter in aktion',
+    'Wir haben normal kommuniziert',
+    'Ich wollte geld bitten, aber sie befahlen mir, zur arbeit zu gehen',
+    'Ich höre',
+    "Habe gerade einen schwarzen gürtel im karate bekommen",
+    'Ich gehorche',
+    'Euer wort ist gesetz, mylord',
+    'Endlich arbeiten',
+    'Die Rakete ist weg!',
+    'После 20 лет в шахтах с углём это - проще простого',
+    'После взлома сервера пентагона это кажется лёгкой прогулкой'
 ]
 
-work_days = list(range(5))
-approved_data: {'web_url': [{str: str}]} = {}
-need_approve_data: {'web_url': [str]} = {}
+# If no merge requests to approve, this is Mayakovsky's perfect spell to send 
+mayakovskiy = 'Magst du Rosen?\nIch scheiß drauf!\nDas Land braucht Lokomotiven,\nwir brauchen ' \
+              'Metall!\nGenosse!\nStöhne nicht,' \
+              '\nNicht keuchen!\nZieh nicht am Zaum!\nWenn du den Plan abgeschlossen hast,\nschick alle zu ' \
+              '\nf*ck\nhabe ihn nicht abgeschlossen - \nf*ck dich selbst.'
+
+# Set workdays number 
+work_days = list(range(7))
+approved_data: {str: [{str: str}]} = {}
+need_approve_data: {str: [str]} = {}
 
 
 def get_telegram_name(users_from_description: [str]) -> [str]:
@@ -55,11 +72,16 @@ def get_telegram_name(users_from_description: [str]) -> [str]:
 
 
 def get_not_in_draft_mrs() -> []:
-    url = 'https://gitlab.com/api/v4/projects/your project number/merge_requests?state=opened'
+    url = 'https://gitlab.com/api/v4/projects/YOUR_PROJECT_GIRLAB_NUMBER/merge_requests?state=opened'
     response = requests.get(url, headers=headers).text
     opened_merge_requests = json.loads(response)
 
     return filter(lambda item: item['draft'] is False, opened_merge_requests)
+
+
+def clear_data():
+    need_approve_data.clear()
+    approved_data.clear()
 
 
 def load_mr_data():
@@ -69,11 +91,12 @@ def load_mr_data():
         iid = str(mr['iid'])
         web_url = str(mr['web_url'])
 
-        url = 'https://gitlab.com/api/v4/projects/your project number/merge_requests/' + iid + '/approvals'
+        url = 'https://gitlab.com/api/v4/projects/YOUR_PROJECT_GIRLAB_NUMBER/merge_requests/' + iid + '/approvals'
         get_approved_mrs = requests.get(url, headers=headers).text
         approved_mrs_dict = json.loads(get_approved_mrs)
         approved_developers = approved_mrs_dict['approved_by']
 
+        # Set needed approves number 
         if len(approved_developers) < 3:
             mr_data = {web_url: approved_developers}
 
@@ -109,29 +132,51 @@ async def send_message_if_needed(message: types.Message):
 
     if weekday in work_days and current_time in time_to_send_message:
         load_mr_data()
+        common_message = ''
+
         for merge_request in approved_data:
             approved_developers = get_approved_developers(approved_data[merge_request])
             need_send_message_developers = list(set(need_approve_data[merge_request]) - set(approved_developers))
             web_url = str(merge_request)
-            to_readable_view = ''
+            developers_str = ''
 
             for i in need_send_message_developers:
-                to_readable_view += (i + ' ')
+                developers_str += ('👨‍💻 ' + i + '\n')
 
-            motivation = random.choice(german_motivation) + ' 💅'
-            new_message = to_readable_view + web_url + ' МР ждёт ревью' + ', ' + motivation
-            await bot.send_message(message.from_user.id, new_message)
+            common_message += ('{0}\n➡️ {1}\n\n\n'.format(developers_str[: -1], web_url))
 
+            # Complete message  
+        if len(common_message) != 0:
+            new_message = common_message + '👮🏻 МР-ы ждут ревью 🚔'
+            print('---> I am ok, message successfully sent: ' + current_time)
+        else:
+            # Or if nothing to sent, send Spell, also print in Windows cmd line for debugging and bot state monitoring
+            thoughts = 'С мр-ами порядок 💅, и я вдруг вспомнила:\n\n' + mayakovskiy
+            new_message = thoughts
+            print('---> I am ok, Mayakovskiy successfully sent: ' + current_time)
+
+        clear_data()
+        await bot.send_message(message.chat.id, new_message, disable_web_page_preview=True)
         await asyncio.sleep(60)
     else:
+        # If not time and not day to sent message, just sleep for another 60 sec check 
+        print('---> I am ok, having 60 seconds rest: ' + current_time)
         await asyncio.sleep(60)
 
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    await message.reply('🔪 Мать мр-ов в деле 💄\n✅ Ушла искать нарушителей 💅')
+    await message.reply(random.choice(start_messages) + ' 💁🏻‍♀️')
     while True:
-        await send_message_if_needed(message)
+        try:
+            await send_message_if_needed(message)
+            # Handle possible errors
+        except BotBlocked as error:
+            print('!!! BotBlocked error: ' + error.text)
+            pass
+        except BadRequest as error:
+            print('!!! BadRequest error: ' + error.text)
+            pass
 
 
 if __name__ == '__main__':
