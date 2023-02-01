@@ -1,6 +1,6 @@
-# MrFather bot
+# MrMother bot
 
-MrFather is customizable, extendable telegram bot to remind if merge request is waiting for someones approval. 
+MrMother is customizable, extendable telegram bot to remind if merge request is waiting for someones approval. 
 You need to fork and edit code for your personal team customization.
 
 To start working all you need is:
