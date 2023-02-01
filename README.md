@@ -8,6 +8,8 @@ To start working all you need is:
 2) Your bot personal token 
 3) Your personal gitlab token 
 
+
+
 Now it's time to make it work. After you refilled data with yours, for Windows,
 for ex.: 
 1) press cmd + r
