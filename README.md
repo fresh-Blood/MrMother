@@ -10,10 +10,11 @@ To start working all you need is:
 
 Now it's time to make it work. After you refilled data with yours, for Windows,
 for ex.: 
-press cmd + r ---> 
-type shell:startup ---> 
-then create txt with path to your script --->
-then rename it with name.cmd --->
-launch if needed now, or wait for next pc start up, bot will launch automatically in command line.
+1) press cmd + r
+2) type shell:startup
+3) then create txt with path to your script
+4) then rename it with name.cmd
+
+Launch if needed now, or wait for next pc start up, bot will launch automatically in command line.
 
 Enjoy!
